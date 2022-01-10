@@ -6,7 +6,7 @@ const geo = require('georedis').initialize(client)
 import { createLocation } from '../db/index'
 
 
-router.get('/', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/', async (req: Request, res: Response, next: NextFunction) => {
 
     const  {name, latitude, longitude}  = req.body
 

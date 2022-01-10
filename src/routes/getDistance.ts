@@ -7,7 +7,7 @@ import { getLocation } from '../db/index'
 import type {Coordinates, DistanceData} from '../types'
 
 
-
+//get distance if redis DB has location records, otherwise return data to validate record in postgres DB
 const getLocations = (placeOne: string, placeTwo: string, unit: string)=> new Promise<DistanceData> ((resolve, reject)=>{
     geo.locations([placeOne, placeTwo], (err: Error, locations: Record<string, Coordinates> ) => {
         const places: Array<string> = []
@@ -32,11 +32,15 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
      const placeTwo = req.query["place-two"]
      const unit = req.query.unit
      let distance = null
+     
+     try{
+     //try to get distance from redis DB location records    
      const distanceData = await getLocations(`${placeOne}`, `${placeTwo}`, `${unit}`)
     
      if (distanceData.distance != null){
          distance = distanceData.distance
      }else {
+     // if any location record is not found in redis DB, try to get location record from postgres DB and put it in redis DB
          await Promise.all(
            distanceData.places.map( async (place: string)=> { 
              const currentPlace = await getLocation(place)
@@ -51,11 +55,17 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
                }
            })
          )
-        
+      //get distance from postgres DB records if missing in redis
          const distDataReviewed = await getLocations(`${placeOne}`, `${placeTwo}`, `${unit}`)
          if (distDataReviewed.distance != null) distance = distDataReviewed.distance
 
+    }}
+    catch(error){
+      console.error(error)
+      return next(error);
     }
+
+
     res.send({
         unit, 
         distance
