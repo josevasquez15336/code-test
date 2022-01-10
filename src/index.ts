@@ -1,59 +1,59 @@
-import express, { Request, Response, NextFunction } from 'express'
-import { createClient } from 'redis';
-import type { Location } from 'types';
-import bp from 'body-parser'
-import  {createLocation}  from 'db'
+import express, { Request, Response, NextFunction } from 'express';
 
-const redisClient = createClient();
-(async () => {
-  try{
-   redisClient.on('error', (err) => console.log('Redis Client Error', err));
-   await redisClient.connect();
-   await redisClient.set('key', 'value');
-  const value = await redisClient.get('key');
-  console.log('redis value',value)
-  }catch(error){
-    console.log('error redis', error)
-  }
-})();
-const expTime = 14400
+import bp from 'body-parser';
+import  {createLocation}  from 'db';
 
-
-//import db from 'db'
-
+const redis = require('redis'),
+    client = redis.createClient()
+const geo = require('georedis').initialize(client)
 const PORT = process.env.PORT || 3001
 
 const app = express()
-app.use(bp.json())
+
 app.use(bp.urlencoded({ extended: true }))
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error(err.stack);
   res.status(500).send('Something broke!');
 });
 
-
-app.post('/add-location', async (req: Request, res: Response, next: NextFunction) => {
-  const  {name, latitude, longitude}  = req.body
-  try {
-      const redisData = await redisClient.get(name)
-      console.log(redisData)
-      if(redisData === null) await redisClient.setEx(name, expTime, JSON.stringify({name, latitude, longitude}))
-      await createLocation({name, latitude, longitude})
-  }catch(error){
-    console.log('error add location',error)
-    return next(error);
-    
-  }
-  
-  res.sendStatus(200)
-})
-
-app.get('/', (req: Request, res: Response) => {
-  
+app.get('/distance', (req: Request, res: Response) => {
+  console.log('query', req.query)
+ const { placeOne, placeTwo, unit } = req.query
+ console.log('paceOne',placeOne)
   res.send('hello')
 })
 
+app.use(bp.json())
+
+app.post('/add-location', async (req: Request, res: Response, next: NextFunction) => {
+  const  {name, latitude, longitude}  = req.body
+
+    geo.location(name, (err:Error, location: Record<string, number>)=>{
+      if(err){ 
+        console.error(err);
+        return next(err);
+      }
+      else if ( location === null ) {
+        geo.addLocation(name, { latitude, longitude }, (err: Error, reply: Record<string, number>) =>{
+          if(err) { 
+            console.error(err)
+            return next(err);
+          }
+          else console.log('added locations:', reply)
+        })
+      }
+    })
+    try{
+    await createLocation({name, latitude, longitude})
+    }catch(error){
+      console.error(error)
+      return next(error);
+    }
+    res.sendStatus(200)
+})
+
+
 app.listen(PORT, () => {
   console.log(`app runnin on port ${PORT}`)
- // db.runMigrations()
+
 })
