@@ -3,8 +3,8 @@ import express, { Request, Response, NextFunction } from 'express';
 import bp from 'body-parser';
 import  {createLocation}  from 'db';
 
-const redis = require('redis'),
-    client = redis.createClient()
+const redis = require('redis')
+const client = redis.createClient()
 const geo = require('georedis').initialize(client)
 const PORT = process.env.PORT || 3001
 
@@ -17,10 +17,23 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 });
 
 app.get('/distance', (req: Request, res: Response) => {
-  console.log('query', req.query)
- const { placeOne, placeTwo, unit } = req.query
- console.log('paceOne',placeOne)
-  res.send('hello')
+  //console.log('query', req.query)
+// const { placeOne, placeTwo, unit } = req.query
+   const placeOne = req.query["place-one"]
+   const placeTwo = req.query["place-two"]
+   const unit = req.query.unit
+
+  geo.locations([placeOne, placeTwo], (err: Error, locations: any ) => {
+    if(err) console.error(err)
+    
+    else {
+      console.log(locations)
+      // geo.distance(placeOne, placeTwo, {units:unit}, (err: Error, distance: number)=>{
+      //   console.log('the distance is', distance)
+      // })
+      
+    }
+  })
 })
 
 app.use(bp.json())
