@@ -37,9 +37,31 @@ export	const createLocation = async ( location: Location ) =>
 			})
 			.catch(err => {
 				client.release()
-				reject()
+				reject(err)
 				console.log(err)
 			})
 		})
 	})
+
+export const getLocation = async ( name: string ) => 
+new Promise<Location>((resolve, reject) => {
+	const text= `SELECT * FROM geo_location WHERE name='${name}'`
+	pool
+	.connect()
+	.then(client => {
+		return client
+		.query(text)
+		.then(res => {
+			resolve(res.rows[0])
+			client.release()
+			
+		})
+		.catch(err => {
+			reject(null)
+			client.release()
+			
+			console.log(err)
+		})
+	})
+})
 
