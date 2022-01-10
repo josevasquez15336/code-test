@@ -15,9 +15,9 @@ You will need to first download and install Docker or you should be able to run 
 
 ### Installing
 
-Clone this repository
-run npm install if not using docker 
-or just run app with by running docker-compose up.
+Clone this repository,
+Run npm install if not using docker,
+or just run the app by running docker-compose up.
 
 
 ### Executing program
